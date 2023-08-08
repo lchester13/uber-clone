@@ -27,12 +27,23 @@ struct UberMapViewRepresentable: UIViewRepresentable{
     }
     
     func updateUIView(_ uiView: UIViewType, context: Context) {
-        if let coordinate = locationViewModel.selectedLocationCoordinate {
-            context.coordinator.addAndSelectAnnotation(withCoordinate: coordinate)
-            context.coordinator.configurePolyLine(withDestinationCoordinate: coordinate)
+        print("DEBUG map state is \(mapState)")
+        
+        switch mapState {
+        case .noInput:
+            context.coordinator.clearMapViewandRecenterOnUserLocation()
+        case .searchingForLocation:
+            // Handle the searching state if needed
+            break
+        case .locationSelected:
+            if let coordinate = locationViewModel.selectedLocationCoordinate {
+                context.coordinator.addAndSelectAnnotation(withCoordinate: coordinate)
+                context.coordinator.configurePolyLine(withDestinationCoordinate: coordinate)
+            }
+        }
         }
         
-    }
+    
     
     func makeCoordinator() -> MapCoordinator {
         return MapCoordinator(parent: self)
@@ -47,6 +58,7 @@ extension UberMapViewRepresentable {
         
         let parent: UberMapViewRepresentable
         var userLocationCoordinate: CLLocationCoordinate2D?
+        var currentRegion: MKCoordinateRegion?
         
         // Lifecycle
         
@@ -64,6 +76,9 @@ extension UberMapViewRepresentable {
                     latitudeDelta: 0.05,
                     longitudeDelta: 0.05 )
             )
+            
+            self.currentRegion = region
+            
             parent.mapView.setRegion(region, animated: true)
         }
         
@@ -119,6 +134,14 @@ extension UberMapViewRepresentable {
                 completion(route)
             }
             
+        }
+        func clearMapViewandRecenterOnUserLocation() {
+            parent.mapView.removeOverlays(parent.mapView.overlays)
+            parent.mapView.removeAnnotations(parent.mapView.annotations)
+            
+            if let currentRegion = currentRegion {
+                parent.mapView.setRegion(currentRegion, animated: true)
+            }
         }
     }
 }
